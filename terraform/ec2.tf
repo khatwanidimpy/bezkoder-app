@@ -52,12 +52,14 @@ resource "aws_instance" "app" {
 #!/bin/bash
 set -e
 apt update -y
+cd /home/ubuntu/
+git clone git clone https://github.com/khatwanidimpy/bezkoder-app.git
 apt install -y docker.io awscli
 systemctl start docker
 systemctl enable docker
 usermod -aG docker ubuntu
-mkdir -p /home/ubuntu/app
-chown ubuntu:ubuntu /home/ubuntu/app
+mkdir -p /home/ubuntu/bezkoder-app
+chown ubuntu:ubuntu /home/ubuntu/bezkoder-app
 EOF
 
   tags = {

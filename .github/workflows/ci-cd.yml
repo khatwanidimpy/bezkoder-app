@@ -66,7 +66,7 @@ jobs:
 
             echo "Deploying image: $IMAGE"
 
-            cd /home/ubuntu/app
+            cp /home/ubuntu/app/.env.production /home/ubuntu/bezkoder-app/.env.production
 
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
