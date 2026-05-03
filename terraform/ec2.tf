@@ -1,59 +1,32 @@
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
-}
-
-resource "aws_security_group" "alb" {
-  name        = "alb-sg"
-  description = "Allow HTTP from the internet"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "alb-sg"
-  }
+resource "aws_key_pair" "deployer" {
+  key_name   = "deployer-key"
+  public_key = file("~/.ssh/id_rsa.pub")  # make sure this exists
 }
 
 resource "aws_security_group" "ec2" {
   name        = "ec2-sg"
-  description = "Allow application traffic from ALB and SSH from the internet"
+  description = "Allow SSH and app traffic"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    description = "App traffic from ALB"
-    from_port   = var.http_port
-    to_port     = var.http_port
-    protocol    = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
-
+  # SSH access
   ingress {
     description = "SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # restrict later
+  }
+
+  # App port (match your container)
+  ingress {
+    description = "App"
+    from_port   = var.http_port
+    to_port     = var.http_port
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Outbound
   egress {
     from_port   = 0
     to_port     = 0
@@ -66,6 +39,7 @@ resource "aws_security_group" "ec2" {
   }
 }
 
+
 resource "aws_instance" "app" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
@@ -73,31 +47,34 @@ resource "aws_instance" "app" {
   vpc_security_group_ids      = [aws_security_group.ec2.id]
   associate_public_ip_address = true
 
+  key_name = aws_key_pair.deployer.key_name  
   user_data = <<-EOF
               #!/bin/bash
+              set -e
+
               apt update -y
               apt install -y docker.io awscli
+
               systemctl start docker
               systemctl enable docker
 
-              # Login to ECR
-              aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.app.repository_url}
+              usermod -aG docker ubuntu
 
-              # Pull the app
-              docker pull ${aws_ecr_repository.app.repository_url}:latest
-
-              # Run the app with DB env vars
-              DB_HOST=$(echo ${aws_db_instance.postgres.endpoint} | cut -d: -f1)
-              docker run -d -p ${var.http_port}:${var.http_port} \
-                -e DB_HOST=$DB_HOST \
-                -e DB_USER=${var.db_username} \
-                -e DB_PASSWORD=${var.db_password} \
-                -e DB_NAME=${var.db_name} \
-                -e DB_PORT=5432 \
-                ${aws_ecr_repository.app.repository_url}:latest
+              # Create app directory
+              mkdir -p /home/ubuntu/app
+              chown ubuntu:ubuntu /home/ubuntu/app
               EOF
 
   tags = {
-    Name = "app-instance-ubuntu"
+    Name = "bezkoder-ec2"
   }
+}
+
+
+output "ec2_public_ip" {
+  value = aws_instance.app.public_ip
+}
+
+output "ec2_ssh_command" {
+  value = "ssh -i ~/.ssh/id_rsa ubuntu@${aws_instance.app.public_ip}"
 }
