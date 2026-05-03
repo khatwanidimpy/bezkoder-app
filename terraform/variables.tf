@@ -91,5 +91,5 @@ variable "db_username" {
 variable "db_password" {
   description = "Database password"
   type        = string
-  default     = "password123" # Change this!
+  default     = "db-app-node-11" # 
 }
