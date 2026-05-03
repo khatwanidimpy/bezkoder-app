@@ -13,63 +13,66 @@ env:
 
 jobs:
   build:
-    name: Build & Push to ECR
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: AWS Login
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
+      - name: ECR Login
         run: |
           aws ecr get-login-password --region $AWS_REGION | \
           docker login --username AWS --password-stdin $ECR_REGISTRY
 
-      - name: Build image
+      - name: Build Image
         run: |
           docker build \
             -f bezkoder-app/Dockerfile \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             ./bezkoder-app
 
-      - name: Push image
+      - name: Push Image
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
 
   deploy:
-    name: Deploy to EC2
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: Deploy via SSH
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
+
+            ENV=production
             IMAGE=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+            cd /home/ubuntu/app
 
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
             docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
 
-            docker pull $IMAGE
+            # pick env file
+            if [ "$ENV" = "production" ]; then
+              cp .env.production .env
+            else
+              cp .env.development .env
+            fi
 
-            docker stop bezkoder-app || true
-            docker rm bezkoder-app || true
+            export IMAGE=$IMAGE
 
-            docker run -d \
-              -p 3000:3000 \
-              --name bezkoder-app \
-              $IMAGE
-
-            docker image prune -f
+            docker compose down || true
+            docker compose pull || true
+            docker compose up -d
