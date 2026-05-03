@@ -35,7 +35,11 @@ jobs:
 
       # Build & push
       - name: Build image
-        run: docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+        run: |
+          docker build \
+            -f bezkoder-app/Dockerfile \
+            -t $ECR_REPOSITORY:$IMAGE_TAG \
+            ./bezkoder-app
 
       - name: Tag image
         run: |
