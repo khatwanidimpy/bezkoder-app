@@ -16,28 +16,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: AWS Login
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: ECR Login
+      - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region $AWS_REGION | \
           docker login --username AWS --password-stdin $ECR_REGISTRY
 
-      - name: Build Image
+      - name: Build Docker image
         run: |
           docker build \
             -f bezkoder-app/Dockerfile \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             ./bezkoder-app
 
-      - name: Push Image
+      - name: Push Docker image
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
@@ -56,23 +57,28 @@ jobs:
           script: |
             set -e
 
-            ENV=production
-            IMAGE=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            AWS_REGION=${{ env.AWS_REGION }}
+            ECR_REGISTRY=${{ env.ECR_REGISTRY }}
+            ECR_REPOSITORY=${{ env.ECR_REPOSITORY }}
+            IMAGE_TAG=${{ env.IMAGE_TAG }}
+
+            IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+            echo "Deploying image: $IMAGE"
 
             cd /home/ubuntu/app
 
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
-            docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+            # Login to ECR
+            aws ecr get-login-password --region $AWS_REGION | \
+            docker login --username AWS --password-stdin $ECR_REGISTRY
 
-            # pick env file
-            if [ "$ENV" = "production" ]; then
-              cp .env.production .env
-            else
-              cp .env.development .env
-            fi
-
+            # Export image for docker-compose
             export IMAGE=$IMAGE
 
+            # Always use production config as base
+            cp .env.production .env
+
+            # Restart containers
             docker compose down || true
             docker compose pull || true
             docker compose up -d
