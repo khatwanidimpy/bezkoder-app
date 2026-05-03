@@ -66,7 +66,8 @@ jobs:
 
             echo "Deploying image: $IMAGE"
 
-            cp /home/ubuntu/app/.env.production /home/ubuntu/bezkoder-app/.env.production
+            cp /home/ubuntu/app/.env.production /home/ubuntu/bezkoder-app/bezkoder-app/.env.production
+            
 
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
@@ -74,7 +75,6 @@ jobs:
 
             # Export image for docker-compose
             export IMAGE=$IMAGE
-
             # Always use production config as base
             cp .env.production .env
 
