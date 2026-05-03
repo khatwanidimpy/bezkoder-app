@@ -76,6 +76,7 @@ jobs:
             # Export image for docker-compose
             export IMAGE=$IMAGE
             # Always use production config as base
+            cd /home/ubuntu/bezkoder-app/bezkoder-app
             cp .env.production .env
 
             # Restart containers
