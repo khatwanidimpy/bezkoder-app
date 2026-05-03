@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   app:
     build:
@@ -10,32 +12,21 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-  db:
-    image: postgres:16-alpine
-    container_name: postgres_db
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_USER=${POSTGRESDB_USER}
-      - POSTGRES_PASSWORD=${POSTGRESDB_ROOT_PASSWORD}
-      - POSTGRES_DB=${POSTGRESDB_DATABASE}
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      NODE_ENV: production
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${POSTGRESDB_USER}
+      DB_PASSWORD: ${POSTGRESDB_ROOT_PASSWORD}
+      DB_NAME: ${POSTGRESDB_DATABASE}
+    restart: always
+    networks:
+      - bezkoder
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRESDB_USER}"]
-      interval: 5s
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
-volumes:
-  pgdata:
+networks:
+  bezkoder:
+    driver: bridge
