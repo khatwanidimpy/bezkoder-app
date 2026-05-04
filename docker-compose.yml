@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     volumes:
-      - /home/ubuntu/app/.env.production:/home/node/app/.env
+      - home/ubuntu/bezkoder-app/bezkoder-app/.env:/home/node/app/.env
     restart: always
     networks:
       - app-network
