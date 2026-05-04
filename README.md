@@ -1,175 +1,140 @@
-# 🚀 Docker Compose Nodejs, React and Postgres DevOps Example
+# 🚀 DevOps Project: Node.js, Docker, Terraform, CI/CD & Monitoring
 
-## Run the System
-We can easily run the whole application with a single command:
+## 📌 Overview
 
-```bash
-docker compose up
-```
+This project demonstrates a complete DevOps workflow including infrastructure provisioning, containerized application deployment, CI/CD automation, and monitoring.
 
-Docker will pull the required images (PostgreSQL, Node.js, React) if they are not available on your machine.
+---
 
-The services can also be run in the background using:
+## 🏗️ Infrastructure Setup (Terraform)
+
+The infrastructure is fully provisioned using Terraform on AWS.
+
+### Components:
+
+* VPC (ap-south-1)
+* Public Subnet → EC2
+* Private Subnet → RDS
+* Internet Gateway
+* Route Tables
+
+### Services:
+
+* EC2 (Node.js Application)
+* RDS PostgreSQL (Private)
+* ECR (Docker Registry)
+
+---
+
+## 🐳 Run the Application
+
+We can easily run the whole application using Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
+This will start:
+
+* Node.js backend
+* React frontend
+* PostgreSQL database
+
 ---
 
-## Stop the System
-Stopping all running containers is simple:
+## 🐳 Docker Setup
+
+### Build Image
 
 ```bash
-docker compose down
+docker build -t app .
 ```
 
-To stop and remove all containers, networks, and images:
+### Push to ECR
 
 ```bash
-docker compose down --rmi all
+docker tag app:latest <ECR_URL>
+docker push <ECR_URL>
 ```
 
 ---
 
-## 🐳 Services Included
+## 🔁 CI/CD Pipeline
 
-- Frontend: React App (Port: 3000/8081)  
-- Backend: Node.js + Express API (Port: 8080)  
-- Database: PostgreSQL  
+### CI (Continuous Integration)
 
----
+* Build application
+* Run tests
+* Build Docker image
+* Push to ECR
 
-## ⚙️ Application Architecture
+### CD (Continuous Deployment)
 
-- React frontend communicates with Node.js backend via REST APIs  
-- Backend uses Sequelize ORM to interact with PostgreSQL  
-- Docker Compose orchestrates multi-container setup  
-
----
-
-## 🔄 CI/CD with GitHub Actions
-
-This project includes a CI/CD pipeline using GitHub Actions.
-
-### Workflow Features:
-- Runs on push and pull requests  
-- Installs dependencies  
-- Builds frontend and backend  
-- Ready for deployment integration  
-
-📂 Location:
-```
-.github/workflows/
-```
+* Pull latest image from ECR
+* Update docker-compose
+* Restart containers on EC2
 
 ---
 
-## 🏗️ Infrastructure with Terraform
-
-Terraform is used for provisioning infrastructure.
-
-### Run Terraform:
+## 🚀 Deploy Infrastructure
 
 ```bash
-cd terraform
 terraform init
-terraform plan
 terraform apply
 ```
 
-### Purpose:
-- Automates infrastructure setup  
-- Ensures consistent environments  
-- Supports scalable deployment  
+---
+
+## 📊 Monitoring
+
+### CloudWatch
+
+* EC2 CPU usage
+* Logs monitoring
+
+### Prometheus + Grafana
+
+* Node Exporter installed on EC2
+* System metrics dashboards:
+
+  * CPU
+  * Memory
+  * Disk
 
 ---
 
-## 🔧 Local Development (Without Docker)
+## ❤️ Uptime Monitoring
 
-### Backend:
+### Uptime Kuma
 
-```bash
-cd backend
-npm install
-node server.js
-```
-
-### Frontend:
-
-```bash
-cd frontend
-npm install
-npm start
-```
+* Monitors application uptime
+* Sends alerts on downtime
 
 ---
 
-## 🔌 API Endpoints
+## 🔐 Security
 
-- GET /api/tutorials  
-- GET /api/tutorials/:id  
-- POST /api/tutorials  
-- PUT /api/tutorials/:id  
-- DELETE /api/tutorials/:id  
+* RDS in private subnet (no public access)
+* EC2 access restricted via Security Groups
+* SSH allowed only from personal IP
+* HTTPS (443) exposed for application
 
 ---
 
 ## 📁 Project Structure
 
 ```
-bezkoder-app/
-│
-├── backend/
-├── frontend/
-│
-├── docker-compose.yml
-│
-├── .github/
-│   └── workflows/
-│
-├── terraform/
-│
-└── README.md
+terraform/
+docker/
+app/
+.github/workflows/
 ```
 
 ---
 
-## 📘 More Details
+## 👤 Author
 
-For more detail, please visit:
-
-https://www.bezkoder.com/docker-compose-nodejs-postgres/
-
----
-
-## 🔗 Related Posts
-
-https://www.bezkoder.com/node-express-sequelize-postgresql/  
-https://www.bezkoder.com/node-js-pagination-postgresql/  
-https://www.bezkoder.com/node-js-csv-postgresql/  
-https://www.bezkoder.com/node-js-export-postgresql-csv-file/  
-https://www.bezkoder.com/node-js-jwt-authentication-postgresql/  
-
----
-
-## 🔗 Associations
-
-https://www.bezkoder.com/sequelize-associate-one-to-many/  
-https://www.bezkoder.com/sequelize-associate-many-to-many/  
-
----
-
-## 💡 DevOps Highlights
-
-- Dockerized full-stack application  
-- Multi-container orchestration using Docker Compose  
-- CI/CD pipeline with GitHub Actions  
-- Infrastructure provisioning using Terraform  
-
----
-
-## 👩‍💻 Author
-
-Dimpy Khatwani  
+**Dimpy Khatwani**
 DevOps Engineer
+
+---
